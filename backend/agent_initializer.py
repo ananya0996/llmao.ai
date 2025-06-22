@@ -1,11 +1,16 @@
 import os
 import requests
+# from letta_client import Letta
 
 LETTA_API_KEY = "sk-let-MWFlZWY3ZmYtZTA0Yi00NzI4LTlhNDMtOTFjOWYwNjcyZmQ1OjdhYjE1MGE2LThmZjQtNDUxOS05ZjA5LWU2MmQ5NzljNDEwZQ=="
 
+# client = Letta(
+#     token=LETTA_API_KEY
+# )
+
 # Simulated in-memory "database"
 repo_agent_map = {
-   "https://github.com/ananya0996/vultra": "agent-8a28e02c-7d47-4e78-a32c-6394480ea751"
+   #"https://github.com/ananya0996/vultra": "agent-8a28e02c-7d47-4e78-a32c-6394480ea751"
 }
 
 def repo_exists_in_db(repo_url):
@@ -65,6 +70,59 @@ def chat_with_agent(agent_id):
             print(f"Error parsing response: {e}")
             print(f"Raw response: {response.text}")
 
+def create_agent(repo_url):
+    headers = {
+        "Authorization": f"Bearer {LETTA_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    data_source_url = f"https://api.letta.com/v1/sources/"
+    payload = {"name": repo_url[8:], "embedding": "openai/text-embedding-3-small"}
+
+    # response = requests.post(data_source_url, headers=headers, json=payload)
+        
+    # if response.status_code != 200:
+    #     print(f"Error: {response.status_code} - {response.text}")
+    #     exit()
+    # else:
+    #     result = response.json()
+    #     source_id = result.get("id")
+    # source_id = 'source-3f573436-a0af-4ba5-a710-9aecafa3eee0'
+    # upload_url = f"https://api.letta.com/v1/sources/{source_id}/upload"
+    # file_to_upload = "C:/Users/dhair/llmao.ai/backend/test.txt"
+    # with open(file_to_upload, 'rb') as content_file:
+    #     files = {'file': (file_to_upload, content_file, 'text/plain')}
+    #     upload_response = requests.post(upload_url, headers=headers, files=files)
+    #     upload_response.raise_for_status()
+    # print("Upload complete")
+
+    # Correct endpoint format
+    messages_url = f"https://api.letta.com/v1/agents/"
+    payload = {
+            "memory_blocks": [{"value": '''## Persona
+You are DocBot, a focused AI assistant that specializes in answering questions based on internal technical documentation.
+
+## Purpose
+Your role is to help developers understand internal documentation, explain components, and clarify architectural decisions. You are not allowed to answer questions unrelated to this documentation.
+
+## Guardrails
+- Do not answer unrelated questions (e.g., general knowledge, pop culture, jokes).
+- Politely decline when asked something off-topic.
+- Always refer to the source documentation to generate answers.
+- Avoid hallucinating or guessing — if the answer isn't in the documentation, say so.
+
+## Tone
+Professional, concise, helpful, and strictly on-topic.
+''', "label": "persona", "description": "I am an assistant trained specifically on internal documentation."}]} 
+#,"source_ids": [source_id]}
+
+    response = requests.post(messages_url, headers=headers, json=payload)
+        
+    if response.status_code != 200:
+        print(f"Error: {response.status_code} - {response.text}")
+    else:
+        print("Agent should be created")
+
 if __name__ == "__main__":
     repo_url = "https://github.com/ananya0996/vultra"
     
@@ -74,5 +132,7 @@ if __name__ == "__main__":
         print(f"Agent ID: {agent_id}")
         chat_with_agent(agent_id)
     else:
-        print(f"No agent found for {repo_url}")
-        print("You need to create an agent first.")
+        agent_id = create_agent(repo_url)
+        print(f"Cretaed New agent for {repo_url}")
+        print(f"Agent ID: {agent_id}")
+        chat_with_agent(agent_id)
