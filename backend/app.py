@@ -217,13 +217,13 @@ def handle_chat_with_agent():
     return chat_with_agent(agent_id, user_input)
 
 
-@app.route('/internal_repo', methods=['POST'])
-def handle_internal_repo():
-# Store generated documentation in memory (in production, use a database)
-documentation_store = {}
+# @app.route('/internal_repo', methods=['POST'])
+# def handle_internal_repo():
+#     # Store generated documentation in memory (in production, use a database)
+#     documentation_store = {}
 
 @app.route('/repo', methods=['POST'])
-def handle_repo():
+def handle_internal_repo():
     data = request.get_json()
 
     # Check if required keys exist
