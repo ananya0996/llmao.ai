@@ -25,7 +25,7 @@ def get_agent_url(github_url):
     return 'https://api.letta.com/v1/agents/agent-64aac2ec-8a52-433d-a12e-e2f39771179a'
 
 INTERNAL_AGENT_URL = get_agent_url("")
-EXTERNAL_AGENT_URL = ""
+EXTERNAL_AGENT_URL = "https://api.letta.com/v1/agents/agent-0b8bbf7c-d050-4451-b2b6-64caa4248730"
 
 def github_url_to_internal_filename(url):
     """
@@ -235,7 +235,6 @@ def handle_internal_repo():
 
     # Log or process the received URLs
     print(f"Received repoUrl: {repo_url}")
-    print(f"Received confUrl: {conf_url}")
 
     # Build request to AGENT_URL/messages
 
@@ -286,8 +285,7 @@ def handle_internal_repo():
                 datasrc_file.write(assistant_message)
             return jsonify({
                 "assistantMessageContent": assistant_message,
-                "repoUrl": repo_url,
-                "confUrl": conf_url
+                "repoUrl": repo_url
             }), 200
         else:
             return jsonify({"error": "No assistant_message found in response"}), 500
@@ -300,15 +298,13 @@ def handle_external_repo():
     data = request.get_json()
 
     # Check if required keys exist
-    if not data or 'repoUrl' not in data or 'confUrl' not in data:
+    if not data or 'repoUrl' not in data:
         return jsonify({"error": "Invalid input"}), 400
 
     repo_url = data['repoUrl'].strip()
-    conf_url = data['confUrl'].strip()
 
     # Log or process the received URLs
     print(f"Received repoUrl: {repo_url}")
-    print(f"Received confUrl: {conf_url}")
 
     # Build request to AGENT_URL/messages
 
@@ -316,7 +312,7 @@ def handle_external_repo():
         "messages": [
             {
                 "role": "user",
-                "content": f"TODO NEW PROMPT"
+                "content": f"Create a comprehensive external documentation for this repo: {repo_url}. Focus only on the public API endpoints, and exclude internal logic. Ensure the output is in plain text."
             }
         ]
     }
@@ -358,12 +354,11 @@ def handle_external_repo():
             with open(github_url_to_external_filename(repo_url), "w") as datasrc_file:
                 datasrc_file.write(assistant_message)
             # Store the documentation for later retrieval
-            documentation_store[repo_url] = assistant_message
+            #documentation_store[repo_url] = assistant_message
             
             return jsonify({
                 "assistantMessageContent": assistant_message,
-                "repoUrl": repo_url,
-                "confUrl": conf_url
+                "repoUrl": repo_url
             }), 200
         else:
             return jsonify({"error": "No assistant_message found in response"}), 500
