@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 
 interface Config {
   repo: string
-  conf: string
   timestamp: number
 }
 
@@ -97,7 +96,7 @@ export default function InternalChatPage() {
   }, [router])
 
   const systemMessage = config
-    ? `You are LLMAO (Large Language Model Aided Overflow), an AI assistant for ${config.repo} and Confluence at ${config.conf}. You have access to all internal documentation and code from these sources. Provide helpful, accurate responses based on this documentation.`
+    ? `You are LLMAO (Large Language Model Aided Overflow), an AI assistant for ${config.repo}. You have access to all internal documentation and code from this repository. Provide helpful, accurate responses based on this documentation.`
     : "You are LLMAO (Large Language Model Aided Overflow), an AI assistant for internal documentation."
 
   const {
@@ -117,26 +116,17 @@ export default function InternalChatPage() {
     ],
     body: {
       repo: config?.repo || "",
-      conf: config?.conf || "",
     },
   })
 
-  // Show loading screen while checking authentication
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-900 dark:to-indigo-900">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6 animate-pulse">
-            <Brain className="w-8 h-8 text-white" />
-          </div>
-          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading LLMAO interface...</p>
-        </div>
+        <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
     )
   }
 
-  // Show error screen with options
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-900 dark:to-indigo-900">
@@ -172,7 +162,7 @@ export default function InternalChatPage() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Access Denied</h1>
           <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
-            You need to authenticate and configure your documentation sources to access the internal chat.
+            You need to authenticate and configure your documentation source to access the internal chat.
           </p>
           <div className="space-y-3">
             <Button
@@ -200,7 +190,6 @@ export default function InternalChatPage() {
       title="Internal Documentation Chat"
       backUrl="/internal"
       repoUrl={config.repo}
-      confUrl={config.conf}
       isPublic={false}
     />
   )

@@ -1,30 +1,20 @@
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30
 
-function textToStream(text: string, chunkDelay = 30) {
+function textToStream(text: string) {
   const encoder = new TextEncoder()
-  return new ReadableStream({
+  const stream = new ReadableStream({
     start(controller) {
-      const words = text.split(" ")
-      let i = 0
-      const push = () => {
-        if (i < words.length) {
-          controller.enqueue(encoder.encode(`0:"${words[i]}${i < words.length - 1 ? " " : ""}"\n`))
-          i++
-          setTimeout(push, chunkDelay)
-        } else {
-          controller.enqueue(encoder.encode("d:\n"))
-          controller.close()
-        }
-      }
-      push()
+      controller.enqueue(encoder.encode(text))
+      controller.close()
     },
   })
+  return stream
 }
 
 export async function POST(req: Request) {
   try {
-    const { messages, repo, conf } = await req.json()
+    const { messages, repo } = await req.json()
 
     const latestUserMsg =
       [...messages]
@@ -42,7 +32,7 @@ export async function POST(req: Request) {
     const apiKey = "your-actual-api-key" // or leave empty if not needed
 
     // For demo purposes, let's simulate a response instead of calling external API
-    const simulatedResponse = `Based on your internal documentation for ${repo} and Confluence at ${conf}, here's what I found regarding: "${latestUserMsg}". This is a simulated response that demonstrates how your custom API integration would work. You can replace this logic with your actual API call.`
+    const simulatedResponse = `Based on your internal documentation for ${repo}, here's what I found regarding: "${latestUserMsg}". This is a simulated response that demonstrates how your custom API integration would work. You can replace this logic with your actual API call.`
 
     // Uncomment and modify this section when you have your real API ready:
     /*
@@ -56,7 +46,6 @@ export async function POST(req: Request) {
         query: latestUserMsg,
         context: "internal-documentation",
         repository: repo,
-        confluence: conf,
       }),
     })
 
