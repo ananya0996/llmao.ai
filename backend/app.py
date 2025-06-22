@@ -18,7 +18,7 @@ client = Letta(
 
 # Simulated in-memory "database"
 repo_agent_map = {
-   #"https://github.com/ananya0996/vultra": "agent-8a28e02c-7d47-4e78-a32c-6394480ea751"
+   "https://github.com/ananya0996/vultra": "agent-8a28e02c-7d47-4e78-a32c-6394480ea751"
 }
 
 def get_agent_url(github_url):
@@ -208,13 +208,13 @@ def handle_chat_with_agent():
         agent_id = get_agent_id_for_repo(repo_url)
         print(f"Found existing agent for {repo_url}")
         print(f"Agent ID: {agent_id}")
-        chat_with_agent(agent_id)
+        reply = chat_with_agent(agent_id, user_input)
     else:
         agent_id = create_internal_agent(repo_url)
         print(f"Cretaed New agent for {repo_url}")
         print(f"Agent ID: {agent_id}")
-        chat_with_agent(agent_id)
-    return chat_with_agent(agent_id, user_input)
+        reply = chat_with_agent(agent_id, user_input)
+    return reply
 
 
 # @app.route('/internal_repo', methods=['POST'])
