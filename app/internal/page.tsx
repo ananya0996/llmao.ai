@@ -81,7 +81,7 @@ export default function InternalPage() {
   }, [confUrl, validateConfluenceUrl])
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault()
       e.stopPropagation()
 
@@ -105,13 +105,35 @@ export default function InternalPage() {
 
       setIsLoading(true)
 
-      const config: Config = {
-        repo: repoUrl.trim(),
-        conf: confUrl.trim(),
-        timestamp: Date.now(),
-      }
-
       try {
+        // Send repository data to Python server
+        console.log("Where are you");
+        const response = await fetch("http://127.0.0.1:5000/repo", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            repoUrl: repoUrl.trim(),
+            confUrl: confUrl.trim(),
+          }),
+        })
+        console.log("Works");
+
+        const result = await response.json()
+
+        if (!response.ok) {
+          throw new Error(result.details || result.error || "Failed to send repository to Python server")
+        }
+
+        console.log("Successfully sent to Python server:", result)
+
+        const config: Config = {
+          repo: repoUrl.trim(),
+          conf: confUrl.trim(),
+          timestamp: Date.now(),
+        }
+
         // Clear any existing config first
         sessionStorage.removeItem("llmao_config")
 
@@ -129,8 +151,9 @@ export default function InternalPage() {
           router.push("/internal/chat")
         }, 500)
       } catch (error) {
-        console.error("Failed to save configuration:", error)
-        setConfigError("Failed to save configuration. Please try again.")
+        console.error("Error during submission:", error)
+        const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
+        setConfigError(`Error: ${errorMessage}`)
         setIsLoading(false)
       }
     },
