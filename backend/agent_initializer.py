@@ -1,7 +1,7 @@
 import os, time
 import requests
 from letta_client import Letta
-from app import github_url_to_filename
+from app import github_url_to_internal_filename
 LETTA_API_KEY = "sk-let-MWFlZWY3ZmYtZTA0Yi00NzI4LTlhNDMtOTFjOWYwNjcyZmQ1OjdhYjE1MGE2LThmZjQtNDUxOS05ZjA5LWU2MmQ5NzljNDEwZQ=="
 
 client = Letta(
@@ -19,7 +19,7 @@ def repo_exists_in_db(repo_url):
 def get_agent_id_for_repo(repo_url):
     return repo_agent_map.get(repo_url)
 
-def chat_with_agent(agent_id):
+def chat_with_agent(agent_id, user_input):
     headers = {
         "Authorization": f"Bearer {LETTA_API_KEY}",
         "Content-Type": "application/json"
@@ -31,46 +31,45 @@ def chat_with_agent(agent_id):
     print(f"Chatting with agent: {agent_id}")
     print("You can now chat with the agent. Type 'exit' to quit.\n")
 
-    while True:
-        user_input = input("You: ").strip()
-        if user_input.lower() == "exit":
-            break
+    # while True:
+    #     user_input = input("You: ").strip()
+    #     if user_input.lower() == "exit":
+    #         break
 
-        # Correct payload structure based on API docs
-        payload = {
-            "messages": [{"role": "user", "content": user_input}]
-        }
+    #     # Correct payload structure based on API docs
+    payload = {
+        "messages": [{"role": "user", "content": user_input}]
+    }
 
-        response = requests.post(messages_url, headers=headers, json=payload)
+    response = requests.post(messages_url, headers=headers, json=payload)
+    
+    if response.status_code != 200:
+        print(f"Error: {response.status_code} - {response.text}")
+        return
+
+    try:
+        response_data = response.json()
+        print(f"[DEBUG] Full response: {response_data}")  # Remove this after testing
         
-        if response.status_code != 200:
-            print(f"Error: {response.status_code} - {response.text}")
-            continue
-
-        try:
-            response_data = response.json()
-            print(f"[DEBUG] Full response: {response_data}")  # Remove this after testing
-            
-            # Based on API docs, response should have "messages" array
-            if "messages" in response_data and len(response_data["messages"]) > 0:
-                # Get the last message from the agent
-                agent_messages = response_data["messages"]
-                for msg in agent_messages:
-                    if msg.get("role") == "assistant":
-                        reply = msg.get("content", str(msg))
-                        break
-                else:
-                    reply = str(response_data["messages"])
+        # Based on API docs, response should have "messages" array
+        if "messages" in response_data and len(response_data["messages"]) > 0:
+            # Get the last message from the agent
+            agent_messages = response_data["messages"]
+            for msg in agent_messages:
+                if msg.get("role") == "assistant":
+                    reply = msg.get("content", str(msg))
+                    break
             else:
-                reply = str(response_data)
-                
-            print(f"Agent: {reply}\n")
-            
-        except Exception as e:
-            print(f"Error parsing response: {e}")
-            print(f"Raw response: {response.text}")
+                reply = str(response_data["messages"])
+        else:
+            reply = str(response_data)
+        print(f"Agent: {reply}\n")
+        return reply
+    except Exception as e:
+        print(f"Error parsing response: {e}")
+        print(f"Raw response: {response.text}")
 
-def create_agent(repo_url):
+def create_internal_agent(repo_url):
     headers = {
         "Authorization": f"Bearer {LETTA_API_KEY}",
         "Content-Type": "application/json"
@@ -89,7 +88,7 @@ def create_agent(repo_url):
         source_id = result.get("id")
     job = client.sources.files.upload(
         source_id=source_id,
-        file=open(github_url_to_filename(repo_url), "rb")
+        file=open(github_url_to_internal_filename(repo_url), "rb")
     )
 
     # wait until the job is completed
@@ -142,7 +141,7 @@ if __name__ == "__main__":
         print(f"Agent ID: {agent_id}")
         chat_with_agent(agent_id)
     else:
-        agent_id = create_agent(repo_url)
+        agent_id = create_internal_agent(repo_url)
         print(f"Cretaed New agent for {repo_url}")
         print(f"Agent ID: {agent_id}")
         chat_with_agent(agent_id)
