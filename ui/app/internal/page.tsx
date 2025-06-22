@@ -24,13 +24,11 @@ import { ThemeToggle } from "@/components/theme-toggle"
 
 interface Config {
   repo: string
-  conf: string
   timestamp: number
 }
 
 export default function InternalPage() {
   const [repoUrl, setRepoUrl] = useState("")
-  const [confUrl, setConfUrl] = useState("")
   const [assistantMessage, setAssistantMessage] = useState("")
   const [isAuthorized, setIsAuthorized] = useState(false)
   const [password, setPassword] = useState("")
@@ -40,7 +38,6 @@ export default function InternalPage() {
   const [configError, setConfigError] = useState("")
   const [authLoading, setAuthLoading] = useState(true)
   const [repoUrlValid, setRepoUrlValid] = useState<boolean | null>(null)
-  const [confUrlValid, setConfUrlValid] = useState<boolean | null>(null)
   const router = useRouter()
 
   // URL validation functions
@@ -49,16 +46,6 @@ export default function InternalPage() {
     try {
       const urlObj = new URL(url)
       return urlObj.hostname === "github.com" && urlObj.pathname.split("/").length >= 3
-    } catch {
-      return false
-    }
-  }, [])
-
-  const validateConfluenceUrl = useCallback((url: string): boolean => {
-    if (!url.trim()) return false
-    try {
-      const urlObj = new URL(url)
-      return urlObj.hostname.includes("atlassian.net") || urlObj.pathname.includes("/wiki")
     } catch {
       return false
     }
@@ -73,14 +60,6 @@ export default function InternalPage() {
     }
   }, [repoUrl, validateGitHubUrl])
 
-  useEffect(() => {
-    if (confUrl) {
-      setConfUrlValid(validateConfluenceUrl(confUrl))
-    } else {
-      setConfUrlValid(null)
-    }
-  }, [confUrl, validateConfluenceUrl])
-
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
@@ -89,8 +68,8 @@ export default function InternalPage() {
       setConfigError("")
 
       // Validate inputs
-      if (!repoUrl.trim() || !confUrl.trim()) {
-        setConfigError("Both GitHub repository and Confluence URLs are required")
+      if (!repoUrl.trim()) {
+        setConfigError("GitHub repository URL is required")
         return
       }
 
@@ -99,27 +78,22 @@ export default function InternalPage() {
         return
       }
 
-      if (!validateConfluenceUrl(confUrl)) {
-        setConfigError("Please enter a valid Confluence URL (e.g., https://your-domain.atlassian.net/wiki)")
-        return
-      }
-
       setIsLoading(true)
 
       try {
         // Send repository data to Python server
-        console.log("Where are you");
-        const response = await fetch("http://127.0.0.1:5000/repo", {
+        console.log("Sending repository to backend...")
+        const response = await fetch("http://127.0.0.1:5001/repo", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
             repoUrl: repoUrl.trim(),
-            confUrl: confUrl.trim(),
+            confUrl: "", // Empty string since we're not using this field anymore
           }),
         })
-        console.log("Works");
+        console.log("Backend response received");
 
         const result = await response.json()
 
@@ -138,7 +112,6 @@ export default function InternalPage() {
 
         const config: Config = {
           repo: repoUrl.trim(),
-          conf: confUrl.trim(),
           timestamp: Date.now(),
         }
 
@@ -165,7 +138,7 @@ export default function InternalPage() {
         setIsLoading(false)
       }
     },
-    [repoUrl, confUrl, validateGitHubUrl, validateConfluenceUrl, router],
+    [repoUrl, validateGitHubUrl, router],
   )
 
   const handleLogin = useCallback(
@@ -255,22 +228,13 @@ export default function InternalPage() {
       }
     }
 
-    // Check auth status after a brief delay
-    const timer = setTimeout(checkAuthStatus, 100)
-    return () => clearTimeout(timer)
+    checkAuthStatus()
   }, [router])
 
-  // Show loading while checking auth
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-900 dark:to-indigo-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6 animate-pulse">
-            <Brain className="w-8 h-8 text-white" />
-          </div>
-          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Checking authentication...</p>
-        </div>
+        <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
     )
   }
@@ -379,9 +343,9 @@ export default function InternalPage() {
             <Brain className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
-            Configure Documentation Sources
+            Configure Documentation Source
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">Connect your GitHub repository and Confluence workspace</p>
+          <p className="text-gray-600 dark:text-gray-400">Connect your GitHub repository for AI-powered documentation</p>
         </div>
 
         <Card className="border-0 shadow-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
@@ -424,43 +388,6 @@ export default function InternalPage() {
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <label
-                  htmlFor="conf"
-                  className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center"
-                >
-                  <FileText className="w-5 h-5 mr-2" />
-                  Confluence Base URL
-                </label>
-                <div className="relative">
-                  <Input
-                    id="conf"
-                    type="url"
-                    placeholder="https://your-domain.atlassian.net/wiki"
-                    value={confUrl}
-                    onChange={(e) => setConfUrl(e.target.value)}
-                    className={`h-14 border-2 rounded-xl text-lg pr-10 ${
-                      confUrlValid === false
-                        ? "border-red-500 focus:border-red-500"
-                        : confUrlValid === true
-                          ? "border-green-500 focus:border-green-500"
-                          : "focus:border-purple-500"
-                    }`}
-                    required
-                    disabled={isLoading}
-                  />
-                  {confUrlValid !== null && (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      {confUrlValid ? (
-                        <CheckCircle className="w-5 h-5 text-green-500" />
-                      ) : (
-                        <AlertCircle className="w-5 h-5 text-red-500" />
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
               {configError && (
                 <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
                   <p className="text-sm text-red-600 dark:text-red-400 flex items-center">
@@ -474,7 +401,7 @@ export default function InternalPage() {
                 type="submit"
                 className="w-full h-16 bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all duration-300 text-lg shadow-lg"
                 disabled={
-                  isLoading || !repoUrl.trim() || !confUrl.trim() || repoUrlValid === false || confUrlValid === false
+                  isLoading || !repoUrl.trim() || repoUrlValid === false
                 }
               >
                 {isLoading ? (
@@ -482,7 +409,7 @@ export default function InternalPage() {
                     <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin mr-3"></div>
                     <div className="flex flex-col">
                       <span>Connecting to LLMAO...</span>
-                      <span className="text-xs opacity-80">Initializing documentation interface</span>
+                      <span className="text-xs opacity-80">Generating documentation from repository</span>
                     </div>
                   </div>
                 ) : (

@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { ArrowRight, Shield, Globe, Sparkles, Zap, Brain, Code } from "lucide-react"
+import { ArrowRight, Shield, Globe, Sparkles, Zap, Brain, Code, Cloud, ExternalLink } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function Home() {
@@ -17,7 +17,7 @@ export default function Home() {
               </div>
               <div>
                 <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  LLMAO
+                  llmao.ai
                 </span>
                 <p className="text-xs text-muted-foreground -mt-1">Large Language Model Aided Overview</p>
               </div>
@@ -44,15 +44,45 @@ export default function Home() {
           </div>
 
           <h1 className="text-6xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-gray-900 via-purple-900 to-blue-900 dark:from-gray-100 dark:via-purple-300 dark:to-blue-300 bg-clip-text text-transparent leading-tight">
-            LLMAO
+            llmao.ai
           </h1>
           <h2 className="text-2xl md:text-3xl font-semibold mb-4 text-foreground">
-            Large Language Model Aided Overview
+            LLM Aided Overview
           </h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-4xl mx-auto leading-relaxed">
             Experience documentation like never before. Split-screen interface with live documentation and intelligent
             AI chat. Get instant answers while browsing through your codebase and internal docs.
           </p>
+          
+          {/* Compact Powered By Section */}
+          <div className="flex items-center justify-center space-x-6 mb-12">
+            <span className="text-sm text-muted-foreground font-medium">Powered by</span>
+            <div className="flex items-center space-x-4">
+              {/* Letta Cloud */}
+              <div className="group flex items-center space-x-2 px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm hover:bg-white/80 dark:hover:bg-slate-900/80 transition-all duration-300 border border-gray-200/50 dark:border-gray-700/50">
+                <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-md flex items-center justify-center">
+                  <Cloud className="w-3 h-3 text-white" />
+                </div>
+                <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Letta Cloud</span>
+              </div>
+              
+              {/* V0 Vercel */}
+              <div className="group flex items-center space-x-2 px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm hover:bg-white/80 dark:hover:bg-slate-900/80 transition-all duration-300 border border-gray-200/50 dark:border-gray-700/50">
+                <div className="w-6 h-6 bg-gradient-to-r from-black to-gray-800 rounded-md flex items-center justify-center">
+                  <Code className="w-3 h-3 text-white" />
+                </div>
+                <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">v0 by Vercel</span>
+              </div>
+              
+              {/* Google Gemini */}
+              <div className="group flex items-center space-x-2 px-3 py-2 rounded-lg bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm hover:bg-white/80 dark:hover:bg-slate-900/80 transition-all duration-300 border border-gray-200/50 dark:border-gray-700/50">
+                <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-md flex items-center justify-center">
+                  <Brain className="w-3 h-3 text-white" />
+                </div>
+                <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Google Gemini</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Feature Cards */}
@@ -70,7 +100,7 @@ export default function Home() {
                 </div>
               </div>
               <p className="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
-                Secure access to private repositories and internal Confluence documentation. Split-screen interface with
+                Secure access to private repositories and internal documentation. Split-screen interface with
                 live documentation browsing and intelligent AI assistance for your development team.
               </p>
               <Link href="/internal" className="block">
@@ -130,7 +160,7 @@ export default function Home() {
         </div>
 
         {/* Status Indicators */}
-        <div className="text-center">
+        <div className="text-center mb-16">
           <div className="inline-flex items-center space-x-8 text-sm text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-full px-8 py-4 shadow-lg">
             <span className="flex items-center">
               <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>

@@ -1,29 +1,27 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Badge } from "@/components/ui/badge"
 import {
   FileText,
   Search,
   ChevronRight,
   ChevronDown,
+  X,
   Book,
   Code,
   Settings,
   Database,
   Globe,
-  X,
-  Filter,
   BookOpen,
   Zap,
+  Loader2,
 } from "lucide-react"
 
 interface DocumentationPanelProps {
   repoUrl?: string
-  confUrl?: string
   onCollapse: () => void
   isPublic?: boolean
 }
@@ -31,165 +29,78 @@ interface DocumentationPanelProps {
 interface DocSection {
   id: string
   title: string
-  icon: any
-  children?: DocSection[]
-  content?: string
-  category: "getting-started" | "api" | "guides" | "examples"
+  content: string
 }
 
-export function DocumentationPanel({ repoUrl, confUrl, onCollapse, isPublic = false }: DocumentationPanelProps) {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["getting-started"]))
-  const [selectedSection, setSelectedSection] = useState("introduction")
+interface Documentation {
+  title: string
+  content: string
+  sections: DocSection[]
+}
+
+export function DocumentationPanel({ repoUrl, onCollapse, isPublic = false }: DocumentationPanelProps) {
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
+  const [selectedSection, setSelectedSection] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [selectedFilter, setSelectedFilter] = useState<string>("all")
+  const [documentation, setDocumentation] = useState<Documentation | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
 
-  // Mock documentation structure
-  const documentationSections: DocSection[] = [
-    {
-      id: "getting-started",
-      title: "Getting Started",
-      icon: Book,
-      category: "getting-started",
-      children: [
-        {
-          id: "introduction",
-          title: "Introduction",
-          icon: FileText,
-          content:
-            "Welcome to LLMAO documentation. This comprehensive guide will help you understand and implement our Large Language Model Aided Overflow system effectively.",
-          category: "getting-started",
-        },
-        {
-          id: "installation",
-          title: "Installation",
-          icon: Settings,
-          content:
-            "Follow these steps to install and configure LLMAO in your environment. We support multiple deployment options including Docker, npm, and cloud platforms.",
-          category: "getting-started",
-        },
-        {
-          id: "quick-start",
-          title: "Quick Start",
-          icon: Zap,
-          content:
-            "Get up and running with LLMAO in under 5 minutes. This quick start guide covers the essential setup and your first AI-powered documentation query.",
-          category: "getting-started",
-        },
-      ],
-    },
-    {
-      id: "api-reference",
-      title: "API Reference",
-      icon: Code,
-      category: "api",
-      children: [
-        {
-          id: "authentication",
-          title: "Authentication",
-          icon: Settings,
-          content:
-            "Learn about LLMAO's authentication methods including API keys, OAuth, and session management for secure access to your documentation.",
-          category: "api",
-        },
-        {
-          id: "endpoints",
-          title: "Endpoints",
-          icon: Globe,
-          content:
-            "Complete reference of all available API endpoints, including request/response formats, parameters, and example implementations.",
-          category: "api",
-        },
-        {
-          id: "webhooks",
-          title: "Webhooks",
-          icon: Database,
-          content:
-            "Configure webhooks to receive real-time notifications about documentation updates, chat interactions, and system events.",
-          category: "api",
-        },
-      ],
-    },
-    {
-      id: "guides",
-      title: "Guides & Tutorials",
-      icon: BookOpen,
-      category: "guides",
-      children: [
-        {
-          id: "best-practices",
-          title: "Best Practices",
-          icon: FileText,
-          content:
-            "Recommended practices for organizing documentation, optimizing AI responses, and maintaining high-quality knowledge bases.",
-          category: "guides",
-        },
-        {
-          id: "examples",
-          title: "Code Examples",
-          icon: Code,
-          content:
-            "Practical code examples and implementation patterns for integrating LLMAO into your existing documentation workflow.",
-          category: "examples",
-        },
-        {
-          id: "troubleshooting",
-          title: "Troubleshooting",
-          icon: Settings,
-          content:
-            "Common issues and their solutions, debugging tips, and how to get help when you encounter problems.",
-          category: "guides",
-        },
-      ],
-    },
-  ]
-
-  const filterOptions = [
-    { value: "all", label: "All", count: 9 },
-    { value: "getting-started", label: "Getting Started", count: 3 },
-    { value: "api", label: "API Reference", count: 3 },
-    { value: "guides", label: "Guides", count: 2 },
-    { value: "examples", label: "Examples", count: 1 },
-  ]
-
-  // Filter sections based on search and category
-  const filteredSections = useMemo(() => {
-    let sections = documentationSections
-
-    // Filter by category
-    if (selectedFilter !== "all") {
-      sections = sections
-        .map((section) => ({
-          ...section,
-          children: section.children?.filter((child) => child.category === selectedFilter),
-        }))
-        .filter((section) => section.category === selectedFilter || (section.children && section.children.length > 0))
-    }
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
-      sections = sections
-        .map((section) => ({
-          ...section,
-          children: section.children?.filter(
-            (child) => child.title.toLowerCase().includes(query) || child.content?.toLowerCase().includes(query),
-          ),
-        }))
-        .filter(
-          (section) => section.title.toLowerCase().includes(query) || (section.children && section.children.length > 0),
-        )
-    }
-
-    return sections
-  }, [searchQuery, selectedFilter])
-
+  // Fetch documentation from API
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 1200)
-    return () => clearTimeout(timer)
-  }, [])
+    const fetchDocumentation = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+
+        const response = await fetch("/api/documentation", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            repoUrl: repoUrl,
+            isPublic: isPublic,
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch documentation")
+        }
+
+        const data = await response.json()
+        setDocumentation(data.documentation)
+        
+        // Auto-expand first section and select it
+        if (data.documentation.sections.length > 0) {
+          setExpandedSections(new Set([data.documentation.sections[0].id]))
+          setSelectedSection(data.documentation.sections[0].id)
+        }
+      } catch (err) {
+        console.error("Error fetching documentation:", err)
+        setError("Failed to load documentation")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchDocumentation()
+  }, [repoUrl, isPublic])
+
+  // Filter sections based on search query
+  const filteredSections = useMemo(() => {
+    if (!documentation) return []
+    
+    if (!searchQuery.trim()) {
+      return documentation.sections
+    }
+
+    const query = searchQuery.toLowerCase()
+    return documentation.sections.filter(section => 
+      section.title.toLowerCase().includes(query) || 
+      section.content.toLowerCase().includes(query)
+    )
+  }, [documentation, searchQuery])
 
   const toggleSection = useCallback((sectionId: string) => {
     setExpandedSections((prev) => {
@@ -208,20 +119,26 @@ export function DocumentationPanel({ repoUrl, confUrl, onCollapse, isPublic = fa
   }, [])
 
   const getSelectedContent = () => {
-    for (const section of documentationSections) {
-      if (section.children) {
-        const found = section.children.find((child) => child.id === selectedSection)
-        if (found) return found
-      }
-      if (section.id === selectedSection) return section
-    }
-    return null
+    if (!documentation) return null
+    return documentation.sections.find(section => section.id === selectedSection) || null
   }
 
-  const renderSection = (section: DocSection, level = 0) => {
+  const getIconForSection = (title: string) => {
+    const lowerTitle = title.toLowerCase()
+    if (lowerTitle.includes('overview') || lowerTitle.includes('introduction')) return Book
+    if (lowerTitle.includes('setup') || lowerTitle.includes('installation') || lowerTitle.includes('configuration')) return Settings
+    if (lowerTitle.includes('api') || lowerTitle.includes('endpoint')) return Code
+    if (lowerTitle.includes('feature') || lowerTitle.includes('component')) return Zap
+    if (lowerTitle.includes('database') || lowerTitle.includes('storage')) return Database
+    if (lowerTitle.includes('deployment') || lowerTitle.includes('production')) return Globe
+    if (lowerTitle.includes('guide') || lowerTitle.includes('tutorial')) return BookOpen
+    return FileText
+  }
+
+  const renderSection = (section: DocSection) => {
     const isExpanded = expandedSections.has(section.id)
-    const hasChildren = section.children && section.children.length > 0
     const isSelected = selectedSection === section.id
+    const Icon = getIconForSection(section.title)
 
     return (
       <div key={section.id} className="select-none">
@@ -231,35 +148,29 @@ export function DocumentationPanel({ repoUrl, confUrl, onCollapse, isPublic = fa
               ? "bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700 shadow-sm"
               : "hover:bg-muted/50 hover:shadow-sm"
           }`}
-          style={{ paddingLeft: `${12 + level * 16}px` }}
-          onClick={() => {
-            if (hasChildren) {
-              toggleSection(section.id)
-            } else {
-              selectSection(section.id)
-            }
-          }}
+          onClick={() => selectSection(section.id)}
         >
-          {hasChildren && (
-            <div className="w-4 h-4 flex items-center justify-center">
-              {isExpanded ? (
-                <ChevronDown className="w-3 h-3 text-muted-foreground transition-transform" />
-              ) : (
-                <ChevronRight className="w-3 h-3 text-muted-foreground transition-transform" />
-              )}
-            </div>
-          )}
-          {!hasChildren && <div className="w-4" />}
-
-          <section.icon
+          <Icon
             className={`w-4 h-4 transition-colors ${isSelected ? "text-purple-600 dark:text-purple-400" : "text-muted-foreground group-hover:text-foreground"}`}
           />
           <span className="text-sm font-medium flex-1 transition-colors">{section.title}</span>
+          <div className="w-4 h-4 flex items-center justify-center">
+            {isExpanded ? (
+              <ChevronDown className="w-3 h-3 text-muted-foreground transition-transform" />
+            ) : (
+              <ChevronRight className="w-3 h-3 text-muted-foreground transition-transform" />
+            )}
+          </div>
         </div>
 
-        {hasChildren && isExpanded && (
-          <div className="mt-1 animate-fade-in">
-            {section.children?.map((child) => renderSection(child, level + 1))}
+        {isExpanded && (
+          <div className="mt-1 ml-6 animate-fade-in">
+            <div className="text-xs text-muted-foreground px-3 py-2 leading-relaxed">
+              {section.content.length > 150 
+                ? `${section.content.substring(0, 150)}...` 
+                : section.content
+              }
+            </div>
           </div>
         )}
       </div>
@@ -278,19 +189,33 @@ export function DocumentationPanel({ repoUrl, confUrl, onCollapse, isPublic = fa
               <X className="w-4 h-4" />
             </Button>
           </div>
-          <div className="animate-pulse space-y-4">
-            <div className="h-10 bg-muted rounded"></div>
-            <div className="space-y-2">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="h-8 bg-muted rounded"></div>
-              ))}
-            </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin text-purple-600 dark:text-purple-400 mx-auto mb-4" />
+            <p className="text-sm text-muted-foreground">Loading documentation...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="h-full flex flex-col bg-background border-r">
+        <div className="p-4 border-b">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Documentation</h2>
+            <Button variant="ghost" size="sm" onClick={onCollapse}>
+              <X className="w-4 h-4" />
+            </Button>
           </div>
         </div>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-sm text-muted-foreground">Loading documentation...</p>
+            <FileText className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
+            <p className="text-sm text-muted-foreground mb-2">Failed to load documentation</p>
+            <p className="text-xs text-muted-foreground">{error}</p>
           </div>
         </div>
       </div>
@@ -319,38 +244,12 @@ export function DocumentationPanel({ repoUrl, confUrl, onCollapse, isPublic = fa
           />
         </div>
 
-        {/* Filters */}
-        <div className="space-y-2">
-          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-            <Filter className="w-3 h-3" />
-            <span>Filter by category</span>
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {filterOptions.map((filter) => (
-              <Badge
-                key={filter.value}
-                variant={selectedFilter === filter.value ? "default" : "secondary"}
-                className={`cursor-pointer text-xs transition-all hover:scale-105 ${
-                  selectedFilter === filter.value ? "bg-purple-600 hover:bg-purple-700 text-white" : "hover:bg-muted"
-                }`}
-                onClick={() => setSelectedFilter(filter.value)}
-              >
-                {filter.label} ({filter.count})
-              </Badge>
-            ))}
-          </div>
-        </div>
-
         {/* Connection Status */}
         {!isPublic && (
-          <div className="mt-3 text-xs text-muted-foreground space-y-1">
+          <div className="text-xs text-muted-foreground">
             <p className="flex items-center">
               <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
               Repository: {repoUrl?.split("/").pop() || "Not connected"}
-            </p>
-            <p className="flex items-center">
-              <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-              Confluence: {confUrl ? "Connected" : "Not connected"}
             </p>
           </div>
         )}
@@ -365,7 +264,9 @@ export function DocumentationPanel({ repoUrl, confUrl, onCollapse, isPublic = fa
               {filteredSections.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No results found</p>
+                  <p className="text-sm">
+                    {searchQuery ? `No results found for "${searchQuery}"` : "No documentation available"}
+                  </p>
                 </div>
               )}
             </div>
@@ -379,68 +280,13 @@ export function DocumentationPanel({ repoUrl, confUrl, onCollapse, isPublic = fa
               {selectedContent ? (
                 <div className="animate-fade-in">
                   <div className="flex items-center space-x-2 mb-6">
-                    <selectedContent.icon className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                    <FileText className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                     <h1 className="text-2xl font-bold">{selectedContent.title}</h1>
                   </div>
 
                   <div className="prose prose-sm max-w-none dark:prose-invert">
-                    <p className="text-muted-foreground leading-relaxed text-base mb-8">
-                      {selectedContent.content || "Content for this section is being loaded..."}
-                    </p>
-
-                    {/* Enhanced content sections */}
-                    <div className="space-y-8">
-                      <div className="bg-muted/30 rounded-xl p-6 border">
-                        <h3 className="font-semibold mb-4 flex items-center">
-                          <Code className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
-                          Code Example
-                        </h3>
-                        <pre className="bg-slate-900 dark:bg-slate-950 text-slate-100 p-4 rounded-lg text-sm overflow-x-auto border">
-                          <code>{`// LLMAO Integration Example
-import { LLMAO } from 'llmao-sdk'
-
-const client = new LLMAO({
-  apiKey: process.env.LLMAO_API_KEY,
-  endpoint: 'https://api.llmao.dev'
-})
-
-// Query your documentation
-const response = await client.query({
-  question: 'How do I implement authentication?',
-  context: 'internal-docs',
-  filters: ['api-reference', 'security']
-})
-
-console.log(response.answer)
-console.log(response.sources)`}</code>
-                        </pre>
-                      </div>
-
-                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
-                        <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center">
-                          <Zap className="w-5 h-5 mr-2" />
-                          Pro Tip
-                        </h4>
-                        <p className="text-blue-800 dark:text-blue-200 text-sm leading-relaxed">
-                          Use the chat interface to ask specific questions about this documentation section. LLMAO can
-                          provide contextual answers based on the content you're currently viewing.
-                        </p>
-                      </div>
-
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                          <h5 className="font-medium text-green-900 dark:text-green-100 mb-2">✅ Best Practice</h5>
-                          <p className="text-green-800 dark:text-green-200 text-sm">
-                            Always validate API responses and implement proper error handling.
-                          </p>
-                        </div>
-                        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-                          <h5 className="font-medium text-amber-900 dark:text-amber-100 mb-2">⚠️ Important</h5>
-                          <p className="text-amber-800 dark:text-amber-200 text-sm">
-                            Keep your API keys secure and never expose them in client-side code.
-                          </p>
-                        </div>
-                      </div>
+                    <div className="text-muted-foreground leading-relaxed text-base whitespace-pre-wrap">
+                      {selectedContent.content}
                     </div>
                   </div>
                 </div>
@@ -450,7 +296,7 @@ console.log(response.sources)`}</code>
                     <FileText className="w-16 h-16 text-muted-foreground/50 mx-auto mb-6" />
                     <h3 className="text-xl font-semibold mb-3">Select a Section</h3>
                     <p className="text-muted-foreground leading-relaxed">
-                      Choose a documentation section from the sidebar to view its content and start exploring.
+                      Choose a documentation section from the sidebar to view its content.
                     </p>
                   </div>
                 </div>

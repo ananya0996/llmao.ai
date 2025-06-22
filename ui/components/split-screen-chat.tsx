@@ -39,7 +39,6 @@ interface SplitScreenChatProps {
   title: string
   backUrl: string
   repoUrl?: string
-  confUrl?: string
   isPublic?: boolean
 }
 
@@ -61,7 +60,6 @@ export function SplitScreenChat({
   title,
   backUrl,
   repoUrl,
-  confUrl,
   isPublic = false,
 }: SplitScreenChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -351,7 +349,6 @@ export function SplitScreenChat({
         {!isDocPanelCollapsed && (
           <DocumentationPanel
             repoUrl={repoUrl}
-            confUrl={confUrl}
             onCollapse={() => setIsDocPanelCollapsed(true)}
             isPublic={isPublic}
           />
@@ -558,7 +555,7 @@ export function SplitScreenChat({
                     <div className="mt-4 text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
                       <p className="flex items-center justify-center">
                         <Settings className="w-3 h-3 mr-1" />
-                        Click "Setup" to reconfigure your GitHub and Confluence URLs
+                        Click "Setup" to reconfigure your GitHub repository URL
                       </p>
                     </div>
                   )}
