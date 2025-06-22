@@ -31,6 +31,7 @@ interface Config {
 export default function InternalPage() {
   const [repoUrl, setRepoUrl] = useState("")
   const [confUrl, setConfUrl] = useState("")
+  const [assistantMessage, setAssistantMessage] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(false)
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
@@ -122,9 +123,21 @@ export default function InternalPage() {
 
         const result = await response.json()
 
-        if (!response.ok) {
+        /*if (!response.ok) {
           throw new Error(result.details || result.error || "Failed to send repository to Python server")
+        }*/
+
+        if (result && result.assistantMessageContent) {
+          console.log("Received assistant message:", result.assistantMessageContent);
+    
+          // Display or use it in your UI
+          setAssistantMessage(result.assistantMessageContent);
+        } else {
+          console.error("Assistant message missing in response", result);
         }
+        } catch (error) {
+          console.error("Request failed:", error);
+        
 
         console.log("Successfully sent to Python server:", result)
 
