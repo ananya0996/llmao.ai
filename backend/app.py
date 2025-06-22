@@ -102,7 +102,7 @@ def handle_repo():
         )
 
         if assistant_message:
-            with open(get_filename_from_github_url(repo_url), "w") as datasrc_file:
+            with open(github_url_to_filename(repo_url), "w") as datasrc_file:
                 datasrc_file.write(assistant_message)
             return jsonify({
                 "assistantMessageContent": assistant_message,

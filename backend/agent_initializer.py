@@ -1,12 +1,12 @@
-import os
+import os, time
 import requests
-# from letta_client import Letta
-
+from letta_client import Letta
+from app import github_url_to_filename
 LETTA_API_KEY = "sk-let-MWFlZWY3ZmYtZTA0Yi00NzI4LTlhNDMtOTFjOWYwNjcyZmQ1OjdhYjE1MGE2LThmZjQtNDUxOS05ZjA5LWU2MmQ5NzljNDEwZQ=="
 
-# client = Letta(
-#     token=LETTA_API_KEY
-# )
+client = Letta(
+    token=LETTA_API_KEY
+)
 
 # Simulated in-memory "database"
 repo_agent_map = {
@@ -79,22 +79,28 @@ def create_agent(repo_url):
     data_source_url = f"https://api.letta.com/v1/sources/"
     payload = {"name": repo_url[8:], "embedding": "openai/text-embedding-3-small"}
 
-    # response = requests.post(data_source_url, headers=headers, json=payload)
+    response = requests.post(data_source_url, headers=headers, json=payload)
         
-    # if response.status_code != 200:
-    #     print(f"Error: {response.status_code} - {response.text}")
-    #     exit()
-    # else:
-    #     result = response.json()
-    #     source_id = result.get("id")
-    # source_id = 'source-3f573436-a0af-4ba5-a710-9aecafa3eee0'
-    # upload_url = f"https://api.letta.com/v1/sources/{source_id}/upload"
-    # file_to_upload = "C:/Users/dhair/llmao.ai/backend/test.txt"
-    # with open(file_to_upload, 'rb') as content_file:
-    #     files = {'file': (file_to_upload, content_file, 'text/plain')}
-    #     upload_response = requests.post(upload_url, headers=headers, files=files)
-    #     upload_response.raise_for_status()
-    # print("Upload complete")
+    if response.status_code != 200:
+        print(f"Error: {response.status_code} - {response.text}")
+        exit()
+    else:
+        result = response.json()
+        source_id = result.get("id")
+    job = client.sources.files.upload(
+        source_id=source_id,
+        file=open(github_url_to_filename(repo_url), "rb")
+    )
+
+    # wait until the job is completed
+    while True:
+        job = client.jobs.retrieve(job.id)
+        if job.status == "completed":
+            break
+        elif job.status == "failed":
+            raise ValueError(f"Job failed: {job.metadata}")
+        print(f"Job status: {job.status}")
+        time.sleep(1)
 
     # Correct endpoint format
     messages_url = f"https://api.letta.com/v1/agents/"
@@ -113,15 +119,19 @@ Your role is to help developers understand internal documentation, explain compo
 
 ## Tone
 Professional, concise, helpful, and strictly on-topic.
-''', "label": "persona", "description": "I am an assistant trained specifically on internal documentation."}]} 
-#,"source_ids": [source_id]}
+''', "label": "persona", "description": "I am an assistant trained specifically on internal documentation."}]
+,"source_ids": [source_id]}
 
     response = requests.post(messages_url, headers=headers, json=payload)
         
-    if response.status_code != 200:
+    if response.status_code != 201:
         print(f"Error: {response.status_code} - {response.text}")
     else:
         print("Agent should be created")
+        result = response.json()
+        agent_id = result.get("id")
+        repo_agent_map[repo_url] = agent_id
+        return agent_id
 
 if __name__ == "__main__":
     repo_url = "https://github.com/ananya0996/vultra"
