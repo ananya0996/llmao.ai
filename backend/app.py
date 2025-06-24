@@ -12,7 +12,35 @@ def get_agent_url(github_url):
 
 AGENT_URL = get_agent_url("")
 LETTA_API_KEY = os.getenv("LETTA_API_KEY")
-print(LETTA_API_KEY)
+
+def github_url_to_filename(url):
+    """
+    Converts a GitHub project URL into a safe .txt filename using string operations.
+
+    Example:
+        https://github.com/user/project -> user_project.txt
+    """
+    # Remove protocol (http/https)
+    if url.startswith("https://"):
+        url = url[len("https://"):]
+    elif url.startswith("http://"):
+        url = url[len("http://"):]
+
+    # Split the URL into parts
+    parts = url.strip("/").split("/")
+
+    # Ensure it's a GitHub project URL
+    if len(parts) >= 3 and parts[0] == "github.com":
+        user = parts[1]
+        repo = parts[2].replace(".git", "")
+        return f"{user}_{repo}.txt"
+    else:
+        #raise ValueError("Invalid GitHub project URL")
+        return "random_file.txt"
+
+# Example usage:
+# print(github_url_to_filename("https://github.com/psf/requests"))  # psf_requests.txt
+
 
 @app.route('/repo', methods=['POST'])
 def handle_repo():
@@ -74,6 +102,8 @@ def handle_repo():
         )
 
         if assistant_message:
+            with open(get_filename_from_github_url(repo_url), "w") as datasrc_file:
+                datasrc_file.write(assistant_message)
             return jsonify({
                 "assistantMessageContent": assistant_message,
                 "repoUrl": repo_url,
